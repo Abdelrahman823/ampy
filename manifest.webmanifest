@@ -1,0 +1,13 @@
+{
+  "name": "Ampy — Learn Electronics",
+  "short_name": "Ampy",
+  "description": "Bite-size electronics lessons with live circuits you actually solve.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fbf7ee",
+  "theme_color": "#c46a2b",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
