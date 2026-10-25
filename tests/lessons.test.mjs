@@ -10,6 +10,14 @@ test('lesson ids are unique', () => {
   assert.equal(new Set(ids).size, ids.length);
 });
 
+test('lesson titles are unique', () => {
+  const seen = new Map();
+  for (const l of LESSONS) {
+    assert.ok(!seen.has(l.title), `"${l.title}" used by ${seen.get(l.title)} and ${l.id}`);
+    seen.set(l.title, l.id);
+  }
+});
+
 for (const unit of UNITS) {
   for (const lesson of unit.lessons) {
     test(`${unit.id}/${lesson.id} ${lesson.title}`, () => {
