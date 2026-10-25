@@ -318,7 +318,7 @@ export function mountBench(host, spec, onChange, { readOnly = false } = {}) {
       }
 
       if (p.tap && !readOnly && buildHits) {
-        const hit = el('g', { class: 'hit', tabindex: 0, role: 'button', 'aria-label': `${p.tap} ${p.label ?? p.kind}` }, hitLayer);
+        const hit = el('g', { class: 'hit', tabindex: 0, role: 'button', 'aria-label': `${p.tap} ${p.label || p.kind}` }, hitLayer);
         el('circle', { cx: mx, cy: my, r: 22, class: `hit-ring ${needsTap(p) ? 'pulse' : ''}` }, hit);
         hit.addEventListener('click', () => act(p));
         hit.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(p); } });
