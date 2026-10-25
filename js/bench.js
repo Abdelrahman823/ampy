@@ -117,7 +117,9 @@ const PIN_LAYOUT = {
   npn: { c: [8, -22, 'v'], b: [-20, 0, 'h'], e: [8, 22, 'v'] },
   nmos: { d: [8, -22, 'v'], g: [-20, 0, 'h'], s: [8, 22, 'v'] },
   opamp: { n: [-32, -10, 'h'], p: [-32, 10, 'h'], out: [36, 0, 'h'] },
+  opampFlip: { p: [-32, -10, 'h'], n: [-32, 10, 'h'], out: [36, 0, 'h'] },
 };
+const pinLayout = (p) => PIN_LAYOUT[p.kind === 'opamp' && p.flip ? 'opampFlip' : p.kind];
 
 function multiSymbol(g, p, r) {
   if (p.kind === 'npn' || p.kind === 'nmos') {
@@ -136,16 +138,17 @@ function multiSymbol(g, p, r) {
   } else if (p.kind === 'opamp') {
     el('polygon', { points: '-20,-22 -20,22 24,0', class: 'meter' }, g);
     el('path', { d: 'M-32,-10 H-20 M-32,10 H-20 M24,0 H36', class: 'wire' }, g);
-    el('text', { x: -15, y: -6, class: 'lbl pm' }, g).textContent = '−';
-    el('text', { x: -15, y: 14, class: 'lbl pm' }, g).textContent = '+';
+    el('text', { x: -15, y: -6, class: 'lbl pm' }, g).textContent = p.flip ? '+' : '−';
+    el('text', { x: -15, y: 14, class: 'lbl pm' }, g).textContent = p.flip ? '−' : '+';
   }
 }
 
 function label(p, r) {
+  if (p.label === '') return '';
   if (p.show === 'v' && r) return fmtVolts(r.voltage);
   if (p.show === 'i' && r) return fmtAmps(r.current);
   if (p.show === 'p' && r) return `${+(r.power ?? r.current * r.current * p.r).toPrecision(2)} W`;
-  if (p.kind === 'battery') return p.wave ? (p.label ?? 'AC') : fmtVolts(p.v ?? 9).replace('.00', '');
+  if (p.kind === 'battery') return p.wave ? `${+p.wave.amp.toFixed(1)} V · ${p.wave.freq} Hz` : fmtVolts(p.v ?? 9).replace('.00', '');
   if (p.kind === 'resistor') return p.burnt ? 'overheated' : (p.label && !p.choices && !p.slider ? p.label : fmtOhms(p.r));
   if (p.kind === 'ammeter') return r ? fmtAmps(r.current) : '';
   if (p.kind === 'voltmeter') return r ? fmtVolts(r.voltage) : '';
@@ -303,7 +306,7 @@ export function mountBench(host, spec, onChange, { readOnly = false } = {}) {
       if (text) {
         const nx = -uy, ny = ux;
         const off = p.kind === 'battery' ? 22 : ['lamp', 'ammeter', 'voltmeter', 'motor'].includes(p.kind) ? 20 : 16;
-        const side = p.labelSide ?? 1;
+        const side = p.labelSide ?? (p.wave ? -1 : 1); // AC labels are long: keep them inside the loop
         const dx = nx * side, dy = ny * side;
         const anchor = dx < -0.5 ? 'end' : dx > 0.5 ? 'start' : 'middle';
         el('text', { x: mx + dx * off, y: my + dy * (off + 4) + 4, class: `lbl lbl-${p.kind}`, 'text-anchor': anchor }, partLayer).textContent = text;
@@ -350,7 +353,7 @@ export function mountBench(host, spec, onChange, { readOnly = false } = {}) {
     const [ax, ay] = p.at;
     const g = el('g', { transform: `translate(${ax} ${ay})`, class: `part part-${p.kind}` }, layer);
     for (const [pin, node] of Object.entries(p.pins)) {
-      const [px, py, dir] = PIN_LAYOUT[p.kind][pin];
+      const [px, py, dir] = pinLayout(p)[pin];
       const sx = ax + px, sy = ay + py;
       const [nx, ny] = spec.nodes[node];
       const d = dir === 'v' ? `M${sx},${sy} V${ny} H${nx}` : `M${sx},${sy} H${nx} V${ny}`;
@@ -358,7 +361,9 @@ export function mountBench(host, spec, onChange, { readOnly = false } = {}) {
     }
     layer.append(g);
     multiSymbol(g, p, r);
-    const text = p.label ?? (p.kind === 'opamp' ? '' : r?.on ? 'ON' : 'OFF');
+    let text = p.label ?? (p.kind === 'opamp' ? '' : r?.on ? 'ON' : 'OFF');
+    if (p.show === 'ic' && r) text = `Ic ${fmtAmps(r.ic)}`;
+    if (p.show === 'vout' && r) text = fmtVolts(r.vout);
     if (text) el('text', { x: ax + (p.labelDx ?? 22), y: ay + 4, class: `lbl lbl-${p.kind}` }, layer).textContent = text;
   }
 

@@ -5,8 +5,12 @@ import * as a2 from './units/a2.js';
 import * as a3 from './units/a3.js';
 import * as a4 from './units/a4.js';
 import * as a5 from './units/a5.js';
+import * as a6 from './units/a6.js';
+import * as a7 from './units/a7.js';
+import * as a8 from './units/a8.js';
+import * as a9 from './units/a9.js';
 
-const MODULES = [a1, a2, a3, a4, a5];
+const MODULES = [a1, a2, a3, a4, a5, a6, a7, a8, a9];
 
 export const TRACK = { id: 'A', title: 'Electronics' };
 export const UNITS = MODULES.map((m) => m.default);
