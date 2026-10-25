@@ -128,8 +128,11 @@ function inPoints(g) {
 }
 
 function wire(svg, [x1, y1], [x2, y2], on, midX) {
-  const mx = midX ?? (x1 + x2) / 2;
-  el('path', { d: `M${x1},${y1} H${mx} V${y2} H${x2}`, class: `lwire ${on ? 'on' : ''}` }, svg);
+  // midX: x of the vertical jog, or an array of waypoints for feedback loops
+  const d = Array.isArray(midX)
+    ? `M${x1},${y1} ${midX.map(([x, y]) => `L${x},${y}`).join(' ')} L${x2},${y2}`
+    : `M${x1},${y1} H${midX ?? (x1 + x2) / 2} V${y2} H${x2}`;
+  el('path', { d, class: `lwire ${on ? 'on' : ''}` }, svg);
 }
 
 export function mountLogic(host, lab, onChange) {

@@ -129,7 +129,7 @@ function startsSolvedRaw(step) {
     return step.circuit.transient ? evalTransient(step, ps, 2) : evalDc(step, ps);
   }
   if (step.type === 'logic') return logicGoal(step, createLogic(step.lab));
-  if (step.type === 'cpu') return cpuReaches(step, step.machine);
+  if (step.type === 'cpu') return step.goal(createCpu(step.machine), step.machine); // nothing runs until she presses Step/Run
   return false;
 }
 
@@ -142,6 +142,12 @@ export function solution(step) {
     return null;
   }
   if (step.type === 'logic') {
+    if (step.solution) { // ordered actions, for memory circuits where sequence matters
+      const st = createLogic(step.lab);
+      for (const [id, t] of step.solution.gates ?? []) setGate(st, id, t);
+      for (const a of step.solution.seq ?? []) { if (a === 'clock') pulseClock(st); else toggleInput(st, a); }
+      return logicGoal(step, st) ? { gates: step.solution.gates ?? [], seq: step.solution.seq ?? [] } : null;
+    }
     for (const { st, action } of logicCandidates(step.lab)) if (logicGoal(step, st)) return action;
     return null;
   }

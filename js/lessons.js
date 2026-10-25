@@ -9,8 +9,13 @@ import * as a6 from './units/a6.js';
 import * as a7 from './units/a7.js';
 import * as a8 from './units/a8.js';
 import * as a9 from './units/a9.js';
+import * as a10 from './units/a10.js';
+import * as a11 from './units/a11.js';
+import * as a12 from './units/a12.js';
+import * as a13 from './units/a13.js';
+import * as a14 from './units/a14.js';
 
-const MODULES = [a1, a2, a3, a4, a5, a6, a7, a8, a9];
+const MODULES = [a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14];
 
 export const TRACK = { id: 'A', title: 'Electronics' };
 export const UNITS = MODULES.map((m) => m.default);

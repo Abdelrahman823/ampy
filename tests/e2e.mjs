@@ -47,11 +47,12 @@ async function doLogic(step, sol) {
     const g = step.lab.gates.find((x) => x.id === id);
     await page.locator(`.chip-row[aria-label="${g.label ?? g.id}"]`).getByRole('radio', { name: type, exact: true }).click();
   }
-  for (const id of sol.toggles) {
-    const inp = step.lab.inputs.find((x) => x.id === id);
+  const seq = sol.seq ?? [...sol.toggles, ...Array(sol.pulses).fill('clock')];
+  for (const a of seq) {
+    if (a === 'clock') { await page.getByRole('button', { name: 'clock pulse' }).click(); continue; }
+    const inp = step.lab.inputs.find((x) => x.id === a);
     await page.getByRole('switch', { name: `input ${inp.label ?? inp.id}`, exact: true }).click();
   }
-  for (let k = 0; k < sol.pulses; k++) await page.getByRole('button', { name: 'clock pulse' }).click();
 }
 
 async function doCpu(step, sol) {

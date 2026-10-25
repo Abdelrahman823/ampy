@@ -100,6 +100,11 @@ export function mountCpu(host, machine, onChange) {
           <span class="${s.halted ? 'flag on' : 'flag'}">HALT</span>
         </div>
       </div>
+      <div class="bench-buttons">
+        <button type="button" class="btn small" data-act="step" ${s.halted ? 'disabled' : ''}>Step ▸</button>
+        <button type="button" class="btn small" data-act="run" ${s.halted ? 'disabled' : ''}>${timer ? 'Pause ❚❚' : 'Run ▸▸'}</button>
+        <button type="button" class="btn small ghost" data-act="reset">↺ Reset</button>
+      </div>
       <p class="cpu-log" aria-live="polite">${s.log || 'Press Step to run one instruction.'}</p>
       <table class="ram"><thead><tr><th>addr</th><th>bits</th><th>meaning</th></tr></thead><tbody>
       ${s.ram.map((byte, i) => {
@@ -112,12 +117,7 @@ export function mountCpu(host, machine, onChange) {
           : (cell.data !== undefined ? `data ${byte}` : describe(byte));
         return `<tr class="${i === s.pc && !s.halted ? 'pc' : ''} ${editable.has(i) ? 'edit' : ''}"><td>${i}</td><td class="mono">${bin(byte)}</td><td>${meaning}</td></tr>`;
       }).join('')}
-      </tbody></table>
-      <div class="bench-buttons">
-        <button type="button" class="btn small" data-act="step" ${s.halted ? 'disabled' : ''}>Step ▸</button>
-        <button type="button" class="btn small" data-act="run" ${s.halted ? 'disabled' : ''}>${timer ? 'Pause ❚❚' : 'Run ▸▸'}</button>
-        <button type="button" class="btn small ghost" data-act="reset">↺ Reset</button>
-      </div>`;
+      </tbody></table>`;
     onChange?.(s, m);
   }
 

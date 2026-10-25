@@ -5,7 +5,8 @@
   "scripts": {
     "serve": "python -m http.server 5173 --bind 127.0.0.1",
     "test": "node --test tests/*.test.mjs",
-    "e2e": "node tests/e2e.mjs"
+    "e2e": "node tests/e2e.mjs",
+    "shots": "node tests/shots.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.56.1"

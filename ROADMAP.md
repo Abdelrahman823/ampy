@@ -11,7 +11,7 @@ to publish, and it lets us teach some things better.
 **Audience:** built for Abdelrahman's sister, not as a public product (for now).
 The repo and Pages site are technically public because free GitHub Pages requires it.
 
-Status: plan only, nothing below is built yet. v1 = Unit 1 "First Spark" (6 lessons).
+Status (2026-10-25): **Track A built and live**: 14 units, 92 lessons, every puzzle machine-tested. Tracks B–F not started.
 
 ---
 
@@ -23,20 +23,20 @@ Ampy maps every chapter to a unit, then adds what Ohmie doesn't list (✚).
 ### Track A: Electronics (Ohmie: 13 chapters, ~277 lessons)
 | # | Unit | Covers | New engine needed |
 |---|---|---|---|
-| A1 | Basics ✅ (v1) | Charge, loops, switches, Ohm's law, series/parallel, LEDs, faults | — |
-| A2 | Analysis | KVL/KCL, voltage dividers, Thevenin/Norton, superposition, power | Voltmeter probe, node voltage readouts |
-| A3 | Capacitors | Charge/discharge, RC time constant, filters, energy storage | **Time-domain sim** + mini scope |
-| A4 | Diodes | Rectifiers, Zener regulation, protection diodes, LED arrays | Diode curve model |
-| A5 | Power | Batteries, regulators, efficiency, heat, fuses, safety | Power/heat readouts |
-| A6 | Analog | Signals, sensors, potentiometers, oscilloscope reading | Scope + signal generator |
-| A7 | AC | Sine waves, RMS, frequency, inductors, transformers, impedance | AC/phasor sim |
-| A8 | Switches | Transistor as a switch (BJT, MOSFET), relays, H-bridge | Transistor models |
-| A9 | Amplifiers | Transistor amps, op-amp basics, comparators, feedback | Ideal op-amp model |
-| A10 | Silicon | Semiconductors, doping, PN junction, how chips are made | Animations (no sim) |
-| A11 | Logic | Gates, truth tables, flip-flops, counters, adders | **Logic simulator** |
-| A12 | Computers | Build up to an 8-bit CPU: ALU, registers, RAM, clock, program counter | Logic sim + CPU stepper |
-| A13 | History | Volta → transistor → IC → microprocessor (short story lessons) | — |
-| ✚ A14 | Measuring for real | Multimeter use, breadboard layout, reading datasheets, soldering safety | Breadboard view |
+| A1 ✅ | Basics | Charge, loops, switches, Ohm's law, series/parallel, LEDs, faults | — |
+| A2 ✅ | Analysis | KVL/KCL, voltage dividers, Thevenin/Norton, superposition, power | Voltmeter probe, node voltage readouts |
+| A3 ✅ | Capacitors | Charge/discharge, RC time constant, filters, energy storage | **Time-domain sim** + mini scope |
+| A4 ✅ | Diodes | Rectifiers, Zener regulation, protection diodes, LED arrays | Diode curve model |
+| A5 ✅ | Power | Batteries, regulators, efficiency, heat, fuses, safety | Power/heat readouts |
+| A6 ✅ | Analog | Signals, sensors, potentiometers, oscilloscope reading | Scope + signal generator |
+| A7 ✅ | AC | Sine waves, RMS, frequency, inductors, transformers, impedance | AC/phasor sim |
+| A8 ✅ | Switches | Transistor as a switch (BJT, MOSFET), relays, H-bridge | Transistor models |
+| A9 ✅ | Amplifiers | Transistor amps, op-amp basics, comparators, feedback | Ideal op-amp model |
+| A10 ✅ | Silicon | Semiconductors, doping, PN junction, how chips are made | Animations (no sim) |
+| A11 ✅ | Logic | Gates, truth tables, flip-flops, counters, adders | **Logic simulator** |
+| A12 ✅ | Computers | Build up to an 8-bit CPU: ALU, registers, RAM, clock, program counter | Logic sim + CPU stepper |
+| A13 ✅ | History | Volta → transistor → IC → microprocessor (short story lessons) | — |
+| ✚ A14 ✅ | Measuring for real | Multimeter use, breadboard layout, reading datasheets, soldering safety | Breadboard view |
 
 ### Track B: Programming (Ohmie: Python 5 chapters + C++ for Arduino 4)
 | # | Unit | Covers | Engine |

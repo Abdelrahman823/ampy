@@ -84,7 +84,7 @@ function twoTerminal(p, st, ctx) {
     }
     case 'wire': return { g: p.broken ? 0 : 1 / WIRE_R, i: 0 };
     case 'switch': case 'pushbutton': return { g: p.closed ? 1 / WIRE_R : 0, i: 0 };
-    case 'ammeter': return { g: 1 / WIRE_R, i: 0 };
+    case 'ammeter': return { g: 1 / (p.r ?? WIRE_R), i: 0 }; // optional internal resistance
     case 'fuse': return { g: p.burnt ? 0 : 1 / WIRE_R, i: 0 };
     case 'voltmeter': return { g: 0, i: 0 };
     case 'lamp': case 'resistor': case 'motor': case 'buzzer':

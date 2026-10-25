@@ -295,6 +295,7 @@ details.unit .path { margin: 4px 0 18px; }
 
 /* cpu */
 .cpu { font-size: 15px; }
+.cpu .bench-buttons { margin-top: 8px; }
 .cpu-top { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
 .cpu-display { background: #1b1b1b; color: #ff5a3c; border-radius: 12px; padding: 6px 14px; display: flex; flex-direction: column; align-items: center; min-width: 92px; }
 .cpu-display small { color: #aaa; font-weight: 700; font-size: 11px; }
@@ -306,7 +307,7 @@ details.unit .path { margin: 4px 0 18px; }
 .cpu-log { font-size: 14px; min-height: 2.8em; margin: 8px 2px; color: var(--muted); }
 .ram { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 8px; }
 .ram th { text-align: left; color: var(--muted); font-size: 12px; padding: 2px 6px; }
-.ram td { padding: 3px 6px; border-top: 1px solid var(--line); }
+.ram td { padding: 2px 6px; border-top: 1px solid var(--line); }
 .ram .mono { font-family: ui-monospace, monospace; letter-spacing: .04em; }
 .ram tr.pc td { background: var(--copper-soft); font-weight: 700; }
 .ram tr.edit td:last-child { color: var(--copper); }
