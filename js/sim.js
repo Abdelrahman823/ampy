@@ -132,7 +132,7 @@ export function solve(circuit, opts = {}) {
   let volts = new Array(n).fill(0);
   const V = (name) => (name === gnd ? 0 : volts[idx.get(name)]);
 
-  for (let iter = 0; iter < 60; iter++) {
+  for (let iter = 0; iter < 200; iter++) {
     const A = Array.from({ length: n }, () => new Array(n).fill(0));
     const b = new Array(n).fill(0);
     for (let k = 0; k < n; k++) A[k][k] += GMIN;
@@ -191,8 +191,10 @@ export function solve(circuit, opts = {}) {
     }
     volts = solveLinear(A, b);
 
+    // Change at most one device per pass: flipping several at once can make
+    // coupled parts (e.g. a Darlington pair) oscillate between states forever.
     let changed = false;
-    const set = (p, s) => { if (state.get(p.id) !== s) { state.set(p.id, s); changed = true; } };
+    const set = (p, s) => { if (!changed && state.get(p.id) !== s) { state.set(p.id, s); changed = true; } };
     for (const p of parts) {
       const st = state.get(p.id);
       if (DIODES.has(p.kind)) {

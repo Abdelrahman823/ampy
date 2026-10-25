@@ -134,3 +134,15 @@ test('half-wave rectifier blocks the negative half', () => {
   assert.ok(solve(c, { dt: 1e-4, t: 0.005 }).v.x > 9);
   assert.ok(Math.abs(solve(c, { dt: 1e-4, t: 0.015 }).v.x) < 0.01);
 });
+
+test('Darlington pair converges and multiplies gain', () => {
+  const s = solve({ ground: 'g', parts: [
+    bat(9), { id: 'L', kind: 'lamp', a: 'p', b: 'c', r: 18 },
+    { id: 'RB', kind: 'resistor', a: 'p', b: 'b1', r: 100000 },
+    { id: 'Q1', kind: 'npn', pins: { c: 'c', b: 'b1', e: 'b2' } },
+    { id: 'Q2', kind: 'npn', pins: { c: 'c', b: 'b2', e: 'g' } },
+  ] });
+  assert.ok(s.parts.L.current > 0.4, `lamp current ${s.parts.L.current}`);
+  // the reported state must be self-consistent: Q2 base current really comes from Q1
+  near(s.parts.Q2.ib, s.parts.Q1.ib + s.parts.Q1.ic, 0.05);
+});
