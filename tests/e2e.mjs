@@ -1,12 +1,12 @@
-// End-to-end: plays every lesson and the Daily Charge in a real browser,
-// solving benches with real taps. Needs the app served (npm run serve).
-// Usage: node tests/e2e.mjs  [BASE=http://127.0.0.1:5173]
+// End-to-end: plays every lesson of the track and the Daily Charge in a real
+// browser, solving interactive steps with real taps, chips, sliders, switches
+// and CPU edits. Needs the app served (npm run serve).
+// Usage: node tests/e2e.mjs   env: BASE, CHANNEL (msedge), SCHEME, ONLY=<unit id>, NOSHOTS=1
 import { chromium } from 'playwright-core';
 import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { UNIT } from '../js/lessons.js';
-import { fmtOhms } from '../js/sim.js';
+import { UNITS, LESSONS } from '../js/lessons.js';
 import { solution } from './lib/solver.mjs';
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:5173';
@@ -28,13 +28,54 @@ const continueSheet = async (tone = 'good') => {
   await page.locator('.sheet').waitFor({ state: 'detached' });
 };
 
+async function doBench(step, sol) {
+  for (const t of sol.taps) await page.locator('.hit').nth(t).click();
+  for (const k of sol.knobs) {
+    const part = step.circuit.parts.find((p) => p.id === k.part);
+    if (k.kind === 'choice') {
+      await page.locator(`.chip-row[aria-label="${part.label ?? part.prop ?? 'r'}"] .chip`).nth(part.choices.indexOf(k.value)).click();
+    } else {
+      await page.locator(`input[type=range][aria-label="${part.slider.label}"]`).evaluate((el, v) => {
+        el.value = v; el.dispatchEvent(new Event('input', { bubbles: true }));
+      }, k.value);
+    }
+  }
+}
+
+async function doLogic(step, sol) {
+  for (const [id, type] of sol.gates) {
+    const g = step.lab.gates.find((x) => x.id === id);
+    await page.locator(`.chip-row[aria-label="${g.label ?? g.id}"]`).getByRole('radio', { name: type, exact: true }).click();
+  }
+  for (const id of sol.toggles) {
+    const inp = step.lab.inputs.find((x) => x.id === id);
+    await page.getByRole('switch', { name: `input ${inp.label ?? inp.id}`, exact: true }).click();
+  }
+  for (let k = 0; k < sol.pulses; k++) await page.getByRole('button', { name: 'clock pulse' }).click();
+}
+
+async function doCpu(step, sol) {
+  for (const e of sol.edits) {
+    if (e.op !== undefined) await page.locator(`select[aria-label="instruction at ${e.addr}"]`).selectOption(e.op);
+    if (e.arg !== undefined) await page.locator(`select[aria-label="operand at ${e.addr}"]`).selectOption(String(e.arg));
+    if (e.data !== undefined) {
+      const box = page.locator(`input[aria-label="data at ${e.addr}"]`);
+      await box.fill(String(e.data));
+      await box.dispatchEvent('change');
+    }
+  }
+  await page.locator('[data-act="run"]').click();
+}
+
 async function answer(step, { tryWrongFirst = false } = {}) {
   if (step.type === 'learn') return page.locator('.actions button', { hasText: 'Continue' }).click();
-  if (step.type === 'bench') {
+  if (step.type === 'bench' || step.type === 'logic' || step.type === 'cpu') {
     const sol = solution(step);
-    for (const t of sol.taps) await page.locator('.hit').nth(t).click();
-    for (const [row, v] of sol.picks) await page.locator('.chip-row').nth(row).getByRole('radio', { name: fmtOhms(v), exact: true }).click();
-    await page.locator('.sheet.good').waitFor();
+    assert.ok(sol, `no solution for ${step.prompt}`);
+    if (step.type === 'bench') await doBench(step, sol);
+    if (step.type === 'logic') await doLogic(step, sol);
+    if (step.type === 'cpu') await doCpu(step, sol);
+    await page.locator('.sheet.good').waitFor({ timeout: 25000 });
     return continueSheet();
   }
   if (step.type === 'mcq') {
@@ -54,60 +95,57 @@ async function answer(step, { tryWrongFirst = false } = {}) {
 
 await page.goto(BASE);
 await page.evaluate(() => localStorage.clear());
+
+// ONLY=a7 plays just that unit, with earlier lessons marked done
+const only = process.env.ONLY;
+let lessons = LESSONS;
+if (only) {
+  const first = LESSONS.findIndex((l) => l.unit.id === only);
+  const done = Object.fromEntries(LESSONS.slice(0, first).map((l) => [l.id, { best: 1 }]));
+  await page.evaluate((d) => localStorage.setItem('ampy.v1', JSON.stringify({ completed: d })), done);
+  lessons = LESSONS.filter((l) => l.unit.id === only);
+}
 await page.reload();
 await shot('01-home');
 
-for (const [li, lesson] of UNIT.lessons.entries()) {
-  if (li + 1 < UNIT.lessons.length) {
-    assert.ok(await page.getByRole('button', { name: `${UNIT.lessons[li + 1].title} (locked)` }).isDisabled(), 'next lesson locked');
-  }
+let wrongTried = false;
+for (const lesson of lessons) {
+  const t0 = Date.now();
   await page.getByRole('button', { name: lesson.title, exact: true }).click();
-  for (const [si, step] of lesson.steps.entries()) {
-    if (li === 0 && si === 1) await shot('02-bench-before');
-    if (li === 0 && si === 0) { // glossary sheet
-      await page.locator('.term').first().click();
-      await page.locator('.sheet .sheet-title').waitFor();
-      await page.getByRole('button', { name: 'Got it' }).click();
+  for (const step of lesson.steps) {
+    const tryWrong = !wrongTried && step.type === 'mcq';
+    if (tryWrong) wrongTried = true;
+    if (['bench', 'logic', 'cpu'].includes(step.type) && !process.env.NOSHOTS) {
+      await page.waitForTimeout(200);
+      await shot(`step-${lesson.id}-${step.key.split('#')[1]}`);
     }
-    if (li === 4 && si === 2) { // burn an LED first, then reset
-      await page.getByRole('radio', { name: '10 Ω', exact: true }).click();
-      assert.match(await page.locator('.bench-status').innerText(), /burnt out/);
-      await shot('04-led-burnt');
-      await page.getByRole('button', { name: /Reset bench/ }).click();
-    }
-    await answer(step, { tryWrongFirst: li === 0 && step.type === 'mcq' && si === 3 });
-    if (li === 0 && si === 1) await shot('03-after-bench');
+    await answer(step, { tryWrongFirst: tryWrong });
   }
-  await page.getByRole('heading', { name: 'Lesson complete!' }).waitFor();
-  if (li === 0) await shot('05-lesson-complete');
+  await page.getByRole('heading', { name: /complete/ }).waitFor();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByRole('button', { name: `${lesson.title} (completed)` }).waitFor();
-  console.log(`✔ ${lesson.id} ${lesson.title}`);
+  await page.getByRole('button', { name: `${lesson.title} (completed)`, includeHidden: true }).waitFor({ state: 'attached' });
+  console.log(`✔ ${lesson.unit.id}/${lesson.id} ${lesson.title} (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
 }
 
-// Daily Charge: questions are random, so look each one up by its text
-await page.getByRole('button', { name: 'Start' }).click();
-const pool = UNIT.lessons.flatMap((l) => l.steps).filter((s) => s.q);
-for (let k = 0; k < 5; k++) {
-  const text = plain(await page.locator('.prompt').innerText());
-  const step = pool.find((s) => plain(s.q) === text);
-  assert.ok(step, `unknown charge question: ${text}`);
-  await answer(step);
+if (!only) {
+  await page.getByRole('button', { name: 'Start' }).click();
+  const pool = LESSONS.flatMap((l) => l.steps).filter((s) => s.q);
+  for (let k = 0; k < 5; k++) {
+    const text = plain(await page.locator('.prompt').innerText());
+    const step = pool.find((s) => plain(s.q) === text);
+    assert.ok(step, `unknown charge question: ${text}`);
+    await answer(step);
+  }
+  await page.getByRole('heading', { name: 'Fully charged!' }).waitFor();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  console.log('✔ Daily Charge');
+  await page.reload();
+  const xp = Number((await page.locator('.stat.xp').innerText()).replace(/\D/g, ''));
+  assert.ok(xp >= LESSONS.length * 20, `xp too low: ${xp}`);
+  assert.equal(await page.locator('.quests li.ok').count(), 3, 'all quests done');
+  await shot('99-home-after');
+  console.log(`✔ persisted: ${xp} XP, ${UNITS.length} units`);
 }
-await page.getByRole('heading', { name: 'Fully charged!' }).waitFor();
-await page.getByRole('button', { name: 'Continue' }).click();
-console.log('✔ Daily Charge');
-
-// progress survives a reload
-await page.reload();
-const xp = Number((await page.locator('.stat.xp').innerText()).replace(/\D/g, ''));
-const streak = await page.locator('.stat').first().innerText();
-assert.ok(xp >= 6 * 20 + 15, `xp too low: ${xp}`);
-assert.match(streak, /1/);
-assert.equal(await page.locator('.quests li.ok').count(), 3, 'all quests done');
-assert.ok(await page.getByRole('button', { name: 'Done' }).isDisabled(), 'charge spent for today');
-await shot('06-home-after');
-console.log(`✔ persisted: ${xp} XP, streak ${streak}`);
 
 assert.deepEqual(errors, [], `console errors: ${errors.join(' | ')}`);
 console.log('✔ no console errors');

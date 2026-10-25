@@ -1,7 +1,8 @@
 // Offline support: precache the app shell, serve network-first with cache fallback.
-const CACHE = 'ampy-v2';
+const CACHE = 'ampy-v3';
 const SHELL = ['./', 'index.html', 'styles.css', 'icon.svg', 'manifest.webmanifest',
-  'js/app.js', 'js/bench.js', 'js/sim.js', 'js/lessons.js', 'js/progress.js'];
+  'js/app.js', 'js/bench.js', 'js/sim.js', 'js/lessons.js', 'js/progress.js', 'js/logic.js', 'js/cpu.js'];
+// unit files (js/units/*) are cached the first time the app loads them
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

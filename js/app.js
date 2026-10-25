@@ -1,5 +1,7 @@
-import { UNIT, GLOSSARY } from './lessons.js';
+import { UNITS, LESSONS, GLOSSARY, TRACK } from './lessons.js';
 import { mountBench } from './bench.js';
+import { mountLogic } from './logic.js';
+import { mountCpu } from './cpu.js';
 import * as P from './progress.js';
 
 const app = document.getElementById('app');
@@ -57,22 +59,56 @@ document.addEventListener('click', (e) => {
 
 // ---------- home ----------
 function lessonStatus(i) {
-  const l = UNIT.lessons[i];
+  const l = LESSONS[i];
   if (state.completed[l.id]) return 'done';
-  if (i === 0 || state.completed[UNIT.lessons[i - 1].id]) return 'open';
+  if (i === 0 || state.completed[LESSONS[i - 1].id]) return 'open';
+  return 'locked';
+}
+
+function unitStatus(unit) {
+  const idxs = LESSONS.map((l, i) => (l.unit === unit ? i : -1)).filter((i) => i >= 0);
+  const st = idxs.map(lessonStatus);
+  if (st.every((s) => s === 'done')) return 'done';
+  if (st.some((s) => s === 'open')) return 'current';
   return 'locked';
 }
 
 function renderHome() {
   P.rollover(state);
-  persist();
-  const doneCount = UNIT.lessons.filter((l) => state.completed[l.id]).length;
+  const doneCount = LESSONS.filter((l) => state.completed[l.id]).length;
   const quests = P.QUESTS.map((q) => ({ ...q, ok: q.done(state.today) }));
+  const allDone = doneCount === LESSONS.length;
   const greeting = state.streak.usedFreeze
     ? 'A streak freeze saved your streak. Welcome back!'
-    : doneCount === 0 ? 'Hi, I\'m Ampy! Let\'s light your first lamp.' : doneCount === UNIT.lessons.length ? 'Unit complete! Keep your streak with the Daily Charge.' : 'Ready for your next spark?';
+    : doneCount === 0 ? 'Hi, I\'m Ampy! Let\'s light your first lamp.' : allDone ? 'You finished the whole track. Amazing! Keep your streak with the Daily Charge.' : 'Ready for your next spark?';
   delete state.streak.usedFreeze;
   persist();
+
+  let lessonIdx = 0;
+  const unitsHtml = UNITS.map((unit, ui) => {
+    const st = unitStatus(unit);
+    const done = unit.lessons.filter((l) => state.completed[l.id]).length;
+    const nodes = unit.lessons.map((l) => {
+      const i = lessonIdx++;
+      const ls = lessonStatus(i);
+      return `<li class="node ${ls}" style="--i:${i}">
+        <button type="button" ${ls === 'locked' ? 'disabled' : ''} data-go="#/lesson/${l.id}" aria-label="${esc(l.title)}${ls === 'done' ? ' (completed)' : ls === 'locked' ? ' (locked)' : ''}">
+          <span class="node-icon">${ls === 'locked' ? '🔒' : ls === 'done' ? '✓' : l.icon}</span>
+        </button>
+        <span class="node-title">${esc(l.title)}</span>
+      </li>`;
+    }).join('');
+    const prev = UNITS[ui - 1];
+    return `<details class="unit ${st}" ${st === 'current' ? 'open' : ''} id="unit-${unit.id}">
+      <summary>
+        <span class="unit-badge">${st === 'done' ? '✓' : st === 'locked' ? '🔒' : ui + 1}</span>
+        <span class="unit-text"><span class="eyebrow">Unit ${ui + 1} · ${done}/${unit.lessons.length} lessons</span>
+        <strong>${esc(unit.title)}</strong>
+        <span class="muted">${st === 'locked' && prev ? `Finish “${esc(prev.title)}” to unlock` : esc(unit.subtitle)}</span></span>
+      </summary>
+      <ol class="path">${nodes}</ol>
+    </details>`;
+  }).join('');
 
   const el = h(`<main class="home">
     <header class="topbar">
@@ -83,44 +119,51 @@ function renderHome() {
         <span class="stat xp" aria-label="${state.xp} XP">⚡ ${state.xp}</span>
       </div>
     </header>
-    <section class="hello">${mascot(doneCount === UNIT.lessons.length ? 'wow' : 'happy')}<p class="bubble">${greeting}</p></section>
+    <section class="hello">${mascot(allDone ? 'wow' : 'happy')}<p class="bubble">${greeting}</p></section>
     <section class="card quests">
       <h2>Today's quests</h2>
       <ul>${quests.map((q) => `<li class="${q.ok ? 'ok' : ''}"><span class="check">${q.ok ? '✓' : ''}</span>${q.text}</li>`).join('')}</ul>
     </section>
     <section class="card charge ${state.today.charge ? 'spent' : ''}">
-      <div><h2>⚡ Daily Charge</h2><p>${state.today.charge ? 'Charged for today. Come back tomorrow.' : `5 quick review questions · +${P.XP.charge} XP`}</p></div>
+      <div><h2>⚡ Daily Charge</h2><p>${state.today.charge ? 'Charged for today. Come back tomorrow.' : `5 review questions${(state.missed ?? []).length ? ', starting with ones you missed' : ''} · +${P.XP.charge} XP`}</p></div>
       <button class="btn" ${state.today.charge ? 'disabled' : ''} data-go="#/charge">${state.today.charge ? 'Done' : 'Start'}</button>
     </section>
-    <section class="unit">
-      <div class="unit-head"><p class="eyebrow">Unit 1 · ${doneCount}/${UNIT.lessons.length} lessons</p><h2>${UNIT.title}</h2><p class="muted">${UNIT.subtitle}</p></div>
-      <ol class="path">${UNIT.lessons.map((l, i) => {
-        const st = lessonStatus(i);
-        return `<li class="node ${st}" style="--i:${i}">
-          <button type="button" ${st === 'locked' ? 'disabled' : ''} data-go="#/lesson/${l.id}" aria-label="${esc(l.title)}${st === 'done' ? ' (completed)' : st === 'locked' ? ' (locked)' : ''}">
-            <span class="node-icon">${st === 'locked' ? '🔒' : st === 'done' ? '✓' : l.icon}</span>
-          </button>
-          <span class="node-title">${esc(l.title)}</span>
-        </li>`;
-      }).join('')}</ol>
+    <section class="track">
+      <div class="track-head"><p class="eyebrow">Track ${TRACK.id} · ${doneCount}/${LESSONS.length} lessons</p><h2>${TRACK.title}</h2>
+        <div class="track-bar" role="progressbar" aria-label="Track progress" aria-valuemin="0" aria-valuemax="${LESSONS.length}" aria-valuenow="${doneCount}"><div style="width:${(doneCount / LESSONS.length) * 100}%"></div></div>
+      </div>
+      ${unitsHtml}
     </section>
-    <footer class="foot muted">More units coming: capacitors, diodes, transistors, logic.</footer>
+    <footer class="foot muted">More tracks later: programming, Arduino, robotics.</footer>
   </main>`);
   el.addEventListener('click', (e) => {
     const go = e.target.closest('[data-go]');
     if (go && !go.disabled) location.hash = go.dataset.go;
   });
   app.replaceChildren(el);
+  // bring the next lesson into view
+  const next = el.querySelector('.node.open');
+  if (next && doneCount > 0) next.scrollIntoView({ block: 'center' });
 }
 
 // ---------- player ----------
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 function chargeSteps() {
-  const unlocked = UNIT.lessons.filter((l, i) => lessonStatus(i) !== 'locked');
-  const done = UNIT.lessons.filter((l) => state.completed[l.id]);
+  const unlocked = LESSONS.filter((l, i) => lessonStatus(i) !== 'locked');
+  const done = LESSONS.filter((l) => state.completed[l.id]);
   const pool = (done.length ? done : unlocked).flatMap((l) => l.steps.filter((s) => s.type === 'mcq' || s.type === 'numeric'));
-  return shuffle([...pool]).slice(0, 5);
+  const byKey = new Map(pool.map((s) => [s.key, s]));
+  const missed = shuffle((state.missed ?? []).filter((k) => byKey.has(k))).slice(0, 3).map((k) => byKey.get(k));
+  const rest = shuffle(pool.filter((s) => !missed.includes(s)));
+  return [...missed, ...rest].slice(0, 5);
+}
+
+function noteMiss(step) {
+  state.missed = [...new Set([step.key, ...(state.missed ?? [])])].slice(0, 60);
+}
+function noteFix(step) {
+  state.missed = (state.missed ?? []).filter((k) => k !== step.key);
 }
 
 function play(steps, { title, onFinish }) {
@@ -143,12 +186,12 @@ function play(steps, { title, onFinish }) {
   });
   app.replaceChildren(root);
 
-  let benchHandle;
-  cleanup = () => benchHandle?.destroy();
+  let handle;
+  cleanup = () => handle?.destroy();
 
-  function award(firstTry) {
+  function award(firstTry, step) {
     questions += 1;
-    if (firstTry) firstTries += 1;
+    if (firstTry) { firstTries += 1; noteFix(step); }
     const amt = firstTry ? P.XP.firstTry : P.XP.retry;
     earned += amt;
     xpPill.textContent = `⚡ ${earned}`;
@@ -157,9 +200,9 @@ function play(steps, { title, onFinish }) {
   }
 
   function next() {
-    benchHandle?.destroy(); benchHandle = null;
+    handle?.destroy(); handle = null;
     i += 1;
-    if (i >= steps.length) return onFinish({ earned, accuracy: questions ? firstTries / questions : 1 });
+    if (i >= steps.length) { persist(); return onFinish({ earned, accuracy: questions ? firstTries / questions : 1 }); }
     show();
   }
 
@@ -173,8 +216,9 @@ function play(steps, { title, onFinish }) {
 
   function miss(step, onRetry) {
     navigator.vibrate?.(30);
+    noteMiss(step);
     openSheet(`<div class="sheet-head">${mascot('think', 44)}<h3 class="sheet-title">Not quite</h3></div>
-      <p class="explain"><strong>Hint:</strong> ${md(step.hint).replace(/^<p>|<\/p>$/g, '')}</p>
+      <div class="explain"><strong>Hint:</strong> ${md(step.hint)}</div>
       <button class="btn" data-close>Try again</button>`, { tone: 'bad', onClose: onRetry });
   }
 
@@ -184,7 +228,7 @@ function play(steps, { title, onFinish }) {
     root.querySelector('.progress').setAttribute('aria-valuenow', i);
     stage.replaceChildren();
     actions.replaceChildren();
-    stage.scrollTop = 0;
+    window.scrollTo(0, 0);
     let wrong = false, hinted = false;
 
     const hintBtn = () => {
@@ -197,28 +241,31 @@ function play(steps, { title, onFinish }) {
     };
 
     if (step.type === 'learn') {
-      stage.append(h(`<article class="learn">${mascot('happy', 56)}<h2>${esc(step.title)}</h2><div class="body">${md(step.body)}</div></article>`));
+      stage.append(h(`<article class="learn">${step.figure ? '' : mascot('happy', 56)}<h2>${esc(step.title)}</h2>${step.figure ? `<figure class="figure">${step.figure}</figure>` : ''}<div class="body">${md(step.body)}</div></article>`));
       const b = h(`<button class="btn wide" type="button">Continue</button>`);
       b.addEventListener('click', next);
       actions.append(b);
       b.focus();
     }
 
-    if (step.type === 'bench') {
+    if (step.type === 'bench' || step.type === 'logic' || step.type === 'cpu') {
       stage.append(h(`<div class="prompt">${md(step.prompt)}</div>`));
       const host = h(`<div></div>`);
       stage.append(host);
       let solved = false;
-      benchHandle = mountBench(host, step.circuit, (sim, parts) => {
-        if (solved || !step.goal(sim, parts)) return;
+      const onChange = (...args) => {
+        if (solved || !step.goal(...args)) return;
         solved = true;
-        setTimeout(() => success(step, award(!hinted)), 650); // let the lamp glow first
-      });
+        setTimeout(() => success(step, award(!hinted, step)), 650); // let the result show first
+      };
+      const mount = { bench: mountBench, logic: mountLogic, cpu: mountCpu }[step.type];
+      handle = mount(host, step.circuit ?? step.lab ?? step.machine, onChange);
       actions.append(hintBtn());
     }
 
     if (step.type === 'mcq') {
       stage.append(h(`<div class="prompt q">${md(step.q)}</div>`));
+      if (step.figure) stage.append(h(`<figure class="figure">${step.figure}</figure>`));
       const list = h(`<div class="choices" role="radiogroup"></div>`);
       let picked = null;
       const check = h(`<button class="btn wide" type="button" disabled>Check</button>`);
@@ -233,7 +280,7 @@ function play(steps, { title, onFinish }) {
       });
       stage.append(list);
       check.addEventListener('click', () => {
-        if (picked === step.answer) success(step, award(!wrong && !hinted));
+        if (picked === step.answer) success(step, award(!wrong && !hinted, step));
         else {
           wrong = true;
           list.children[picked].classList.add('wrong');
@@ -245,13 +292,14 @@ function play(steps, { title, onFinish }) {
 
     if (step.type === 'numeric') {
       stage.append(h(`<div class="prompt q">${md(step.q)}</div>`));
+      if (step.figure) stage.append(h(`<figure class="figure">${step.figure}</figure>`));
       const form = h(`<form class="numeric"><input type="text" inputmode="decimal" autocomplete="off" aria-label="Your answer" placeholder="?"><span class="unit-label">${esc(step.unit)}</span></form>`);
       const input = form.querySelector('input');
       const check = h(`<button class="btn wide" type="button" disabled>Check</button>`);
       input.addEventListener('input', () => { check.disabled = !input.value.trim(); });
       const submit = () => {
         const v = parseFloat(input.value.replace(',', '.'));
-        if (Number.isFinite(v) && Math.abs(v - step.answer) <= step.tol * Math.abs(step.answer)) success(step, award(!wrong && !hinted));
+        if (Number.isFinite(v) && Math.abs(v - step.answer) <= step.tol * Math.abs(step.answer)) success(step, award(!wrong && !hinted, step));
         else { wrong = true; input.classList.add('wrong'); miss(step, () => { input.classList.remove('wrong'); input.select(); }); }
       };
       form.addEventListener('submit', (e) => { e.preventDefault(); if (!check.disabled) submit(); });
@@ -265,11 +313,11 @@ function play(steps, { title, onFinish }) {
   show();
 }
 
-function finishScreen({ title, lines, mood = 'wow' }) {
-  bar100();
+function finishScreen({ title, lines, mood = 'wow', note }) {
   const el = h(`<main class="finish">
     ${mascot(mood, 120)}
     <h1>${esc(title)}</h1>
+    ${note ? `<p class="muted">${esc(note)}</p>` : ''}
     <ul class="finish-stats">${lines.map(([k, v]) => `<li><span>${v}</span><small>${k}</small></li>`).join('')}</ul>
     <button class="btn wide" type="button">Continue</button>
   </main>`);
@@ -277,21 +325,23 @@ function finishScreen({ title, lines, mood = 'wow' }) {
   app.replaceChildren(el);
   el.querySelector('button').focus();
 }
-function bar100() { const b = document.querySelector('.bar'); if (b) b.style.width = '100%'; }
 
 function startLesson(id) {
-  const idx = UNIT.lessons.findIndex((l) => l.id === id);
+  const idx = LESSONS.findIndex((l) => l.id === id);
   if (idx < 0 || lessonStatus(idx) === 'locked') { location.hash = '#/'; return; }
-  const lesson = UNIT.lessons[idx];
+  const lesson = LESSONS[idx];
   play(lesson.steps, {
     title: lesson.title,
     onFinish: ({ earned, accuracy }) => {
       const before = state.streak.count;
+      const unitWasDone = unitStatus(lesson.unit) === 'done';
       P.addXp(state, earned);
       P.completeLesson(state, lesson.id, accuracy);
       persist();
+      const unitDone = !unitWasDone && unitStatus(lesson.unit) === 'done';
       finishScreen({
-        title: 'Lesson complete!',
+        title: unitDone ? `Unit complete: ${lesson.unit.title}!` : 'Lesson complete!',
+        note: unitDone ? 'The next unit is unlocked.' : '',
         lines: [['XP earned', `+${earned + P.XP.lessonBonus}`], ['First-try accuracy', `${Math.round(accuracy * 100)}%`], [state.streak.count > before ? 'Streak extended!' : 'Day streak', `🔥 ${state.streak.count}`]],
       });
     },
@@ -316,11 +366,11 @@ function route() {
   cleanup(); cleanup = () => {};
   document.querySelectorAll('.sheet, .sheet-backdrop').forEach((n) => n.remove());
   const hash = location.hash || '#/';
-  const m = hash.match(/^#\/lesson\/(\w+)/);
+  const m = hash.match(/^#\/lesson\/([\w-]+)/);
   if (m) startLesson(m[1]);
   else if (hash === '#/charge') startCharge();
   else renderHome();
-  window.scrollTo(0, 0);
+  if (m || hash === '#/charge') window.scrollTo(0, 0);
 }
 
 window.addEventListener('hashchange', route);
