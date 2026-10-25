@@ -146,7 +146,7 @@ function label(p, r) {
   if (p.kind === 'resistor') return p.burnt ? 'overheated' : (p.label && !p.choices && !p.slider ? p.label : fmtOhms(p.r));
   if (p.kind === 'ammeter') return r ? fmtAmps(r.current) : '';
   if (p.kind === 'voltmeter') return r ? fmtVolts(r.voltage) : '';
-  if (p.kind === 'capacitor') return p.label ?? fmtFarads(p.c);
+  if (p.kind === 'capacitor') return p.label && !p.choices ? p.label : fmtFarads(p.c);
   if (p.kind === 'fuse') return p.burnt ? 'blown' : `${p.rating ?? 1} A fuse`;
   if (p.kind === 'zener') return p.label ?? `${p.vz} V zener`;
   if (p.kind === 'led') {
@@ -188,6 +188,11 @@ export function mountBench(host, spec, onChange, { readOnly = false } = {}) {
 
   let toast = '';
   let toastTimer;
+  let hitDirty = true;
+  const partLayer = el('g');
+  const flowLayer = el('g', { class: 'flow-layer' });
+  const hitLayer = el('g');
+  svg.append(partLayer, flowLayer, hitLayer);
   let raf = 0;
   const tr = spec.transient;
   let simT = 0, mem = { v: {}, i: {} }, simState;
@@ -208,6 +213,7 @@ export function mountBench(host, spec, onChange, { readOnly = false } = {}) {
       else { flash(p.kind === 'lamp' ? 'This lamp is fine.' : 'This wire is fine.'); return; }
     } else return;
     navigator.vibrate?.(8);
+    hitDirty = true;
     if (!tr) render();
   }
 
@@ -250,13 +256,15 @@ export function mountBench(host, spec, onChange, { readOnly = false } = {}) {
     for (const p of parts) {
       if (sim.parts[p.id]?.overload && !p.burnt) { p.burnt = true; burnt = true; }
     }
+    if (burnt) hitDirty = true;
     if (burnt && !tr) sim = solve({ parts, ground: spec.ground });
 
-    svg.replaceChildren();
-    const partLayer = el('g');
-    const flowLayer = el('g', { class: 'flow-layer' });
-    const hitLayer = el('g');
-    svg.append(partLayer, flowLayer, hitLayer);
+    // visuals are redrawn every render; tap targets only when they change,
+    // so a tap is never lost to an element replaced mid-press
+    partLayer.replaceChildren();
+    flowLayer.replaceChildren();
+    const buildHits = hitDirty;
+    if (buildHits) { hitLayer.replaceChildren(); hitDirty = false; }
 
     for (const p of parts) {
       const r = sim.parts[p.id];
@@ -303,15 +311,16 @@ export function mountBench(host, spec, onChange, { readOnly = false } = {}) {
         el('text', { x: mx - ux * 9 + uy * 13, y: my - uy * 9 - ux * 13 + 5, class: 'lbl plus', 'text-anchor': 'middle' }, partLayer).textContent = '+';
       }
 
-      if (p.tap && !readOnly) {
+      if (p.tap && !readOnly && buildHits) {
         const hit = el('g', { class: 'hit', tabindex: 0, role: 'button', 'aria-label': `${p.tap} ${p.label ?? p.kind}` }, hitLayer);
         el('circle', { cx: mx, cy: my, r: 22, class: `hit-ring ${needsTap(p) ? 'pulse' : ''}` }, hit);
         hit.addEventListener('click', () => act(p));
         hit.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(p); } });
       }
     }
+    const used = new Set(parts.flatMap((p) => (p.pins ? Object.values(p.pins) : [p.a, p.b])));
     for (const [name, [x, y]] of Object.entries(spec.nodes)) {
-      if (spec.hideDots?.includes(name)) continue;
+      if (!used.has(name) || spec.hideDots?.includes(name)) continue;
       el('circle', { cx: x, cy: y, r: 2.2, class: 'dot' }, partLayer);
     }
     for (const t of spec.texts ?? []) {
@@ -454,7 +463,7 @@ export function mountBench(host, spec, onChange, { readOnly = false } = {}) {
       reset.className = 'btn small ghost';
       reset.type = 'button';
       reset.textContent = '↺ Reset bench';
-      reset.addEventListener('click', () => { parts = structuredClone(initial); resetTime(); renderControls(); if (!tr) render(); });
+      reset.addEventListener('click', () => { parts = structuredClone(initial); resetTime(); hitDirty = true; renderControls(); if (!tr) render(); });
       extra.append(reset);
     }
     if (tr) {
