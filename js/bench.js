@@ -154,6 +154,7 @@ function label(p, r) {
   if (p.kind === 'voltmeter') return r ? fmtVolts(r.voltage) : '';
   if (p.kind === 'capacitor') return p.label && !p.choices ? p.label : fmtFarads(p.c);
   if (p.kind === 'fuse') return p.burnt ? 'blown' : `${p.rating ?? 1} A fuse`;
+  if (p.kind === 'inductor') return p.label && !p.choices ? p.label : `${p.l ?? 1} H`;
   if (p.kind === 'zener') return p.label ?? `${p.vz} V zener`;
   if (p.kind === 'led') {
     if (p.burnt) return 'burnt out';
@@ -403,6 +404,7 @@ export function mountBench(host, spec, onChange, { readOnly = false } = {}) {
     if (prop === 'freq' || fmt === 'hz') return `${v} Hz`;
     if (fmt === 'pct') return `${Math.round(v)}%`;
     if (prop === 'rating') return `${v} A`;
+    if (prop === 'l') return `${v} H`;
     return fmtOhms(v);
   }
 
