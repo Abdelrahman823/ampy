@@ -50,3 +50,15 @@ test('no bench burns a part on open', () => {
     }
   }
 });
+
+// Generated drills must never show broken text or impossible answers.
+test('no broken text or answers anywhere', () => {
+  for (const l of LESSONS) {
+    for (const s of l.steps) {
+      const text = [s.title, s.body, s.prompt, s.q, s.hint, s.explain, ...(s.choices ?? [])].filter(Boolean).join(' ');
+      assert.ok(!/NaN|undefined|Infinity|\[object/.test(text), `${l.id}: broken text in "${text.slice(0, 80)}"`);
+      if (s.type === 'numeric') assert.ok(Number.isFinite(s.answer), `${l.id}: answer ${s.answer}`);
+      if (s.type === 'mcq') assert.equal(new Set(s.choices).size, s.choices.length, `${l.id}: duplicate choices`);
+    }
+  }
+});

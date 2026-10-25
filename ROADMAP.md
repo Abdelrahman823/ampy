@@ -11,7 +11,7 @@ to publish, and it lets us teach some things better.
 **Audience:** built for Abdelrahman's sister, not as a public product (for now).
 The repo and Pages site are technically public because free GitHub Pages requires it.
 
-Status (2026-10-25): **Track A built and live**: 14 units, 148 lessons (Ohmie's electronics track has ~277), every puzzle machine-tested. Tracks B–F not started.
+Status (2026-10-25): **Track A built and live**: 14 units, 282 lessons (Ohmie's electronics track has ~277): concepts, bench challenges and computed-answer drills, every puzzle machine-tested. Tracks B–F not started.
 
 ---
 

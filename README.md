@@ -5,7 +5,7 @@ flip switches, drag sliders, watch an oscilloscope, flip logic gates and program
 8-bit computer. Inspired by the idea behind the Ohmie iOS app; all content, art and
 code here are original.
 
-**Track A · Electronics**: 14 units, 148 lessons: First Spark · Analysis · Capacitors ·
+**Track A · Electronics**: 14 units, 282 lessons: First Spark · Analysis · Capacitors ·
 Diodes · Power · Analog · AC · Switches (transistors) · Amplifiers (op-amps) · Silicon ·
 Logic · Computers · History · Real tools.
 
@@ -22,7 +22,7 @@ the folder to any static host (GitHub Pages, Netlify, Cloudflare Pages). It's a 
 ```powershell
 npm test             # solver physics, logic, CPU, progress, and every lesson's puzzles solvable
 npm run serve        # in a second terminal, then:
-npm run e2e          # plays all 148 lessons + Daily Charge in Edge, saves tests/screens/
+npm run e2e          # plays all 282 lessons + Daily Charge in Edge, saves tests/screens/
 # ONLY=a7 npm run e2e   → just one unit
 ```
 
