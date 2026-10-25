@@ -77,8 +77,11 @@ function symbol(g, p, r) {
     case 'motor': {
       leads(g, 13);
       el('circle', { r: 13, class: 'meter' }, g);
-      const spin = r?.on ? `animation-duration:${Math.max(0.15, 1.2 - r.brightness)}s` : 'animation:none';
-      el('path', { d: 'M0,-9 L0,9 M-9,0 L9,0', class: `rotor ${r?.on ? 'spin' : ''}`, style: spin }, g);
+      if (r?.on) { // a short arc orbiting the M shows it spinning
+        const spin = `${Math.max(0.2, 1.2 - r.brightness).toFixed(2)}s`;
+        const arc = el('path', { d: 'M0,-17 A17,17 0 0 1 14.7,-8.5', class: 'rotor' }, g);
+        el('animateTransform', { attributeName: 'transform', type: 'rotate', from: '0 0 0', to: '360 0 0', dur: spin, repeatCount: 'indefinite' }, arc);
+      }
       break;
     }
     case 'buzzer':

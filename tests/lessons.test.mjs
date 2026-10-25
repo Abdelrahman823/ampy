@@ -29,3 +29,16 @@ for (const unit of UNITS) {
     });
   }
 }
+
+// A bench must not destroy a part the moment it opens: Reset would restore
+// the same doomed state and trap the learner.
+import { solve } from '../js/sim.js';
+test('no bench burns a part on open', () => {
+  for (const l of LESSONS) {
+    for (const step of l.steps.filter((s) => s.type === 'bench' && !s.circuit.transient)) {
+      const s = solve({ parts: structuredClone(step.circuit.parts), ground: step.circuit.ground });
+      const bad = Object.values(s.parts).filter((p) => p.overload).map((p) => p.id);
+      assert.deepEqual(bad, [], `${l.id}: ${step.prompt}`);
+    }
+  }
+});

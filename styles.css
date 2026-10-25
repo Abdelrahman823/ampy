@@ -249,8 +249,7 @@ details.unit .path { margin: 4px 0 18px; }
 .bench-svg .resistor.scorched { stroke: #555; stroke-dasharray: 3 2; }
 .bench-svg .fuse { fill: var(--surface); stroke: var(--wire); stroke-width: 2.5; }
 .bench-svg .fuse.blown { stroke: var(--bad); }
-.bench-svg .rotor { stroke: var(--copper); stroke-width: 2.5; stroke-linecap: round; transform-box: fill-box; transform-origin: center; }
-.bench-svg .rotor.spin { animation: spin 1s linear infinite; }
+.bench-svg .rotor { stroke: var(--copper); stroke-width: 3; stroke-linecap: round; fill: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .bench-svg .buzzing { stroke: var(--copper); }
 .bench-svg .charge { fill: var(--trace2); }

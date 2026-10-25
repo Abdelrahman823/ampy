@@ -119,6 +119,10 @@ function cpuReaches(step, machine) {
 
 // ---------- public ----------
 export function startsSolved(step) {
+  return !!startsSolvedRaw(step);
+}
+
+function startsSolvedRaw(step) {
   if (step.watch) return false;
   if (step.type === 'bench') {
     const ps = structuredClone(step.circuit.parts);
